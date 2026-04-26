@@ -1,6 +1,6 @@
 # 小糯智肤 (Nuonuo Skin AI)
 
-> 面向功效护肤领域的工业级多模态伴随式 AI 智能体，融合原生多模态大模型、四层生化避坑纵深防御与长效记忆架构。
+> 功效护肤伴随式智能体：基于 Spring Boot 3 与 Qwen-VL 原生多模态感知，集成四层生化避坑规则引擎、权威临床指南 RAG 与自适应长效记忆架构。
 
 [![JDK](https://img.shields.io/badge/JDK-17%20(LTS)-ED8B00?style=flat-square&logo=openjdk&logoColor=white)](#)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-6DB33F?style=flat-square&logo=springboot&logoColor=white)](#)
