@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>小糯智肤 - H5 移动端交互原型</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* 基础重置与字体栈 */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+      touch-action: manipulation;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #F8F5F2; /* 奶油奶杏底色，对标小红书治愈系 */
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: #2D2725;
+      user-select: none;
+    }
+    /* 弥散柔光投影 */
+    .soft-shadow {
+      box-shadow: 0 10px 30px rgba(226, 178, 166, 0.12), 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+    .card-border {
+      border: 1px solid rgba(255, 255, 255, 0.85);
+    }
+    .dock-blur {
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+    /* 弹性微交互 */
+    .spring-btn:active {
+      transform: scale(0.95);
+      transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    /* 隐藏滚动条但保留滚动功能 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* 雪媚娘弹性呼吸动画 */
+    @keyframes floatBreath {
+      0%, 100% { transform: translateY(0px) scale(1, 1); }
+      50% { transform: translateY(-6px) scale(1.02, 0.98); }
+    }
+    .avatar-float {
+      animation: floatBreath 3.6s ease-in-out infinite;
+    }
+    /* 声波水纹 */
+    @keyframes ripple {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .ripple-wave {
+      animation: ripple 1.6s ease-out infinite;
+    }
+  </style>
+</head>
+<body class="flex justify-center items-center h-full w-full bg-[#EAE5DF]">
+
+  <!-- 模拟真实手机视口外壳 (390 x 844 iPhone 标准尺寸) -->
+  <div class="relative w-full max-w-[414px] h-full max-h-[896px] bg-[#FAF8F5] sm:rounded-[44px] overflow-hidden flex flex-col shadow-2xl sm:border-[8px] sm:border-[#383331]">
+    
+    <!-- 顶部状态栏与灵动岛占位 -->
+    <div class="w-full pt-3 px-6 flex justify-between items-center text-xs font-semibold text-[#5A524F] shrink-0 z-30">
+      <span>09:41</span>
+      <div class="w-24 h-4 bg-black rounded-full hidden sm:block"></div>
+      <div class="flex items-center space-x-1.5">
+        <span>5G</span>
+        <div class="w-5 h-2.5 border border-[#5A524F] rounded-sm p-0.5 flex items-center">
+          <div class="w-full h-full bg-[#5A524F] rounded-xs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 顶部原生导航栏 -->
+    <header class="w-full px-5 py-2.5 flex items-center justify-between z-20 shrink-0">
+      <div class="flex items-center space-x-2">
+        <span class="text-base font-bold tracking-tight text-[#2D2725]">小糯智肤</span>
+        <span class="text-[10px] bg-[#FFEBE6] text-[#FF6E59] px-2 py-0.5 rounded-full font-medium">伴随式陪伴</span>
+      </div>
+      <!-- 右上角：“小糯记住了我”抽屉触发按钮 -->
+      <button id="openDrawerBtn" class="spring-btn flex items-center space-x-1.5 bg-white/80 card-border px-3 py-1.5 rounded-full text-xs text-[#6B5E59] soft-shadow">
+        <svg class="w-3.5 h-3.5 text-[#FF7A66]" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"></path>
+        </svg>
+        <span class="font-medium">小糯记住了我</span>
+      </button>
+    </header>
+
+    <!-- 主对话滚动视口 -->
+    <main id="chatContainer" class="flex-1 overflow-y-auto px-4 pt-1 pb-28 space-y-4 no-scrollbar">
+
+      <!-- 1. 小糯动态 IP 形象展区 (治愈系白桃雪媚娘) -->
+      <section class="flex flex-col items-center justify-center pt-2 pb-1 text-center">
+        <!-- 3D 萌系白桃雪媚娘拟态形象 -->
+        <div id="nuonuoAvatar" class="relative w-28 h-28 cursor-pointer avatar-float spring-btn">
+          <!-- 角色底座光晕 -->
+          <div class="absolute inset-0 bg-gradient-to-tr from-[#FFDFD6] to-[#FFF5F2] rounded-full blur-xl opacity-80"></div>
+          
+          <!-- 雪媚娘主体结构 -->
+          <div class="relative w-full h-full bg-gradient-to-b from-[#FFFFFF] via-[#FFF8F6] to-[#FFEAE4] rounded-[52px] card-border soft-shadow flex flex-col items-center justify-center p-2">
+            <!-- 珊瑚绒粉色发带 -->
+            <div class="absolute -top-1 w-14 h-4 bg-gradient-to-r from-[#FF988A] to-[#FF7B68] rounded-full shadow-sm flex items-center justify-center">
+              <div class="w-2.5 h-2.5 bg-white rounded-full"></div>
+            </div>
+            <!-- 小糯五官 -->
+            <div class="w-14 flex justify-between items-center px-1 pt-3">
+              <!-- 大眼睛与高光 -->
+              <div class="w-2.5 h-3 bg-[#382F2D] rounded-full relative">
+                <div class="w-1 h-1 bg-white rounded-full absolute top-0.5 right-0.5"></div>
+              </div>
+              <div class="w-2.5 h-3 bg-[#382F2D] rounded-full relative">
+                <div class="w-1 h-1 bg-white rounded-full absolute top-0.5 right-0.5"></div>
+              </div>
+            </div>
+            <!-- 腮红与微笑 -->
+            <div class="w-16 flex justify-between items-center px-0.5 -mt-0.5">
+              <div class="w-3.5 h-2 bg-[#FFAEA0]/60 rounded-full blur-[1px]"></div>
+              <div class="w-2 h-1 border-b-2 border-[#544541] rounded-full -mt-0.5"></div>
+              <div class="w-3.5 h-2 bg-[#FFAEA0]/60 rounded-full blur-[1px]"></div>
+            </div>
+            <!-- 手捧洋甘菊小花 -->
+            <div class="mt-1 flex items-center justify-center text-xs">
+              <span class="text-sm">🌼</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 温柔问候语录 -->
+        <div class="mt-2.5 bg-white/90 card-border px-4 py-2 rounded-2xl soft-shadow inline-block max-w-[280px]">
+          <p class="text-xs text-[#524642] leading-relaxed">
+            “宝子，今天脸蛋摸起来舒服一点了吗？小糯在呢~”
+          </p>
+        </div>
+      </section>
+
+      <!-- 2. 真实护肤场景对话流 (用户提问) -->
+      <div class="flex justify-end items-end space-x-2">
+        <div class="max-w-[78%] bg-[#FFEBE6] text-[#332A27] px-4 py-3 rounded-2xl rounded-br-xs text-[14px] leading-relaxed soft-shadow font-normal">
+          我昨晚刚跟风买了水杨酸精华，手里还有一瓶视黄醇A醇，能今天洗完脸直接叠着涂吗？
+        </div>
+      </div>
+
+      <!-- 3. 小糯专业避坑排雷与四层防御反馈 -->
+      <div class="flex items-start space-x-2.5">
+        <div class="w-8 h-8 rounded-full bg-white card-border flex items-center justify-center shadow-xs shrink-0 text-sm">
+          🍑
+        </div>
+        <div class="max-w-[82%] space-y-3">
+          <!-- 亲和力安抚话术气泡 -->
+          <div class="bg-white card-border px-4 py-3.5 rounded-2xl rounded-tl-xs text-[14px] leading-relaxed text-[#382F2D] soft-shadow">
+            宝子探头过来，小糯的小短手要轻轻拉住你啦！<br>
+            这两个都是很棒的好帮手，但千万<b>不可以同一时间叠涂在脸上</b>哦。
+          </div>
+
+          <!-- 4. 四层防御排雷警示卡片 (小红书高赞手账感排版) -->
+          <div class="bg-[#FFF4F2] border border-[#FFD5CC] rounded-2xl p-3.5 soft-shadow space-y-2">
+            <div class="flex items-center space-x-2 text-[#D9412B]">
+              <span class="w-4 h-4 rounded-full bg-[#FF4D4F] text-white flex items-center justify-center text-[10px] font-bold">!</span>
+              <span class="font-bold text-xs">成分配伍禁忌预警 (P0级阻断)</span>
+            </div>
+            <p class="text-xs text-[#6B4B44] leading-relaxed">
+              <b>水杨酸（强酸剥脱）</b>在加速角质脱落，<b>视黄醇（A醇）</b>在加速基底更新。两者叠加会导致表皮脂质屏障被急速打穿，极易造成接触性刺痛、大面积脱屑泛红。
+            </p>
+          </div>
+
+          <!-- 5. 晨晚极简护肤便签卡片 (Morning/Night Routine) -->
+          <div class="bg-white card-border rounded-2xl p-4 soft-shadow space-y-3">
+            <div class="flex justify-between items-center pb-2 border-b border-[#F4EFEB]">
+              <div class="flex items-center space-x-1.5">
+                <span class="text-sm">📝</span>
+                <span class="font-bold text-xs text-[#2E2624]">小糯推荐·晨晚精简护肤便签</span>
+              </div>
+              <span class="text-[10px] bg-[#F5F2EE] text-[#7A6D68] px-2 py-0.5 rounded-full">早晚分流法</span>
+            </div>
+
+            <!-- 早间步骤 -->
+            <div class="bg-[#F8FBFF] border border-[#E3EFFF] rounded-xl p-2.5 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-[#2068C4] flex items-center space-x-1">
+                  <span>☀️ 早间晨曦：</span>
+                  <span class="font-normal text-[#4A5D75]">温和维稳防晒</span>
+                </span>
+                <span class="text-[10px] text-[#5584BF]">Step 1-2</span>
+              </div>
+              <p class="text-xs text-[#455A75] pl-2 border-l-2 border-[#BCD7FA] mt-1">
+                清水洁面 → 积雪草/B5温和保湿乳 → 物理纯防晒霜
+              </p>
+            </div>
+
+            <!-- 晚间步骤 -->
+            <div class="bg-[#FFF9F6] border border-[#FFE7DC] rounded-xl p-2.5 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-[#D65427] flex items-center space-x-1">
+                  <span>🌙 晚间修护：</span>
+                  <span class="font-normal text-[#7A4B3A]">交替单用</span>
+                </span>
+                <span class="text-[10px] text-[#C26744]">Step 1-3</span>
+              </div>
+              <p class="text-xs text-[#704F43] pl-2 border-l-2 border-[#F7B69C] mt-1">
+                周一三五用<b>水杨酸</b>控油疏通；周二四六用<b>A醇</b>抗老；周日纯休养。
+              </p>
+            </div>
+
+            <!-- 卡片底栏操作 -->
+            <div class="flex justify-end pt-1">
+              <button class="spring-btn text-[11px] text-[#FF6E59] font-medium flex items-center space-x-1 bg-[#FFF2EF] px-2.5 py-1 rounded-full">
+                <span>复制便签到备忘录</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 底部悬浮原生胶囊 Dock 操作栏 (对标小红书高赞毛玻璃浮岛) -->
+    <footer class="absolute bottom-4 left-4 right-4 z-30">
+      <div class="dock-blur card-border rounded-[32px] p-2 soft-shadow flex items-center justify-between space-x-2">
+        
+        <!-- 相机多模态入口按钮 -->
+        <button id="cameraBtn" class="spring-btn w-11 h-11 rounded-full bg-[#FAF7F4] flex flex-col items-center justify-center text-[#4A3F3B] card-border hover:bg-[#FFF0ED] transition-colors shrink-0">
+          <svg class="w-5 h-5 text-[#FF7A66]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          <span class="text-[9px] text-[#7A6E69] -mt-0.5">拍照</span>
+        </button>
+
+        <!-- 中间语音输入胶囊 (按住说话) -->
+        <button id="voiceBtn" class="spring-btn flex-1 h-11 rounded-full bg-gradient-to-r from-[#FFF5F2] to-[#FFEBE6] border border-[#FFD8CF] flex items-center justify-center space-x-2 text-[#4A3A36] text-xs font-medium relative overflow-hidden">
+          <svg class="w-4 h-4 text-[#FF6E59]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+          </svg>
+          <span id="voiceText">按住 说话</span>
+        </button>
+
+        <!-- 键盘文本输入切换按钮 -->
+        <button id="keyboardToggle" class="spring-btn w-11 h-11 rounded-full bg-[#FAF7F4] flex items-center justify-center text-[#4A3F3B] card-border shrink-0">
+          <svg class="w-5 h-5 text-[#635752]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+        </button>
+
+      </div>
+    </footer>
+
+    <!-- 相机拍照分流 ActionSheet (原生移动端浮层) -->
+    <div id="cameraActionSheet" class="hidden absolute inset-0 z-50 bg-black/40 backdrop-blur-xs flex flex-col justify-end p-4 transition-all duration-300">
+      <div class="bg-white rounded-3xl p-4 space-y-3 soft-shadow">
+        <div class="text-center pb-2 border-b border-[#F0EAE6]">
+          <h4 class="font-bold text-sm text-[#2D2725]">多模态感知输入</h4>
+          <p class="text-xs text-[#827772] mt-0.5">大模型直接看懂自拍表征与外包装配方</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <!-- 拍自拍选项 -->
+          <button class="spring-btn flex flex-col items-center justify-center p-3.5 bg-[#FAF7F5] border border-[#EFE8E3] rounded-2xl hover:bg-[#FFF0ED]">
+            <span class="text-2xl mb-1">🤳</span>
+            <span class="text-xs font-bold text-[#382F2D]">面部自拍测肤</span>
+            <span class="text-[10px] text-[#8A7E78]">测红斑/出油/屏障</span>
+          </button>
+          <!-- 拍成分表选项 -->
+          <button class="spring-btn flex flex-col items-center justify-center p-3.5 bg-[#FAF7F5] border border-[#EFE8E3] rounded-2xl hover:bg-[#FFF0ED]">
+            <span class="text-2xl mb-1">🧴</span>
+            <span class="text-xs font-bold text-[#382F2D]">拍瓶身成分表</span>
+            <span class="text-[10px] text-[#8A7E78]">排雷/配方冲突计算</span>
+          </button>
+        </div>
+        <button id="closeCameraSheet" class="w-full py-2.5 bg-[#F5F2EE] rounded-2xl text-xs font-bold text-[#615551] spring-btn">
+          取消
+        </button>
+      </div>
+    </div>
+
+    <!-- 右侧滑出：“小糯记住了我”记忆中心抽屉 (透明掌控权) -->
+    <div id="memoryDrawer" class="hidden absolute inset-0 z-50 bg-black/35 backdrop-blur-xs flex justify-end">
+      <div class="w-[84%] h-full bg-[#FAF8F5] p-5 flex flex-col justify-between soft-shadow overflow-y-auto">
+        <div class="space-y-4">
+          <!-- 抽屉头部 -->
+          <div class="flex items-center justify-between pb-3 border-b border-[#EFEAE6]">
+            <div>
+              <h3 class="font-bold text-base text-[#2E2724]">小糯记住了我</h3>
+              <p class="text-[11px] text-[#8C807A]">透明画像沉淀 · 你拥有一等公民掌控权</p>
+            </div>
+            <button id="closeDrawerBtn" class="w-7 h-7 rounded-full bg-[#EFEAE5] text-[#5C504B] flex items-center justify-center text-xs font-bold spring-btn">
+              ✕
+            </button>
+          </div>
+
+          <!-- 记忆卡片列表 -->
+          <div class="space-y-2.5">
+            <!-- 肤质画像 -->
+            <div class="bg-white card-border p-3 rounded-2xl soft-shadow space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-[#3B322F]">肤质基线</span>
+                <span class="text-[10px] bg-[#E8F5E9] text-[#2E7D32] px-2 py-0.5 rounded-full">高置信度 95%</span>
+              </div>
+              <p class="text-xs text-[#594E4A]">干性敏感肌，角质层偏薄，换季易泛红</p>
+              <div class="flex justify-end pt-1">
+                <button class="text-[10px] text-[#D9412B] hover:underline">删除这条认知</button>
+              </div>
+            </div>
+
+            <!-- 成分禁忌 -->
+            <div class="bg-white card-border p-3 rounded-2xl soft-shadow space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-[#3B322F]">成分排斥禁忌</span>
+                <span class="text-[10px] bg-[#FFEBEE] text-[#C62828] px-2 py-0.5 rounded-full">绝对避坑</span>
+              </div>
+              <p class="text-xs text-[#594E4A]">对酒精有接触性严重发红史；水杨酸与A醇严禁同日叠用</p>
+              <div class="flex justify-end pt-1">
+                <button class="text-[10px] text-[#D9412B] hover:underline">删除这条认知</button>
+              </div>
+            </div>
+
+            <!-- 使用偏好 -->
+            <div class="bg-white card-border p-3 rounded-2xl soft-shadow space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-[#3B322F]">肤感喜好偏好</span>
+                <span class="text-[10px] bg-[#EDE7F6] text-[#512DA8] px-2 py-0.5 rounded-full">个人喜好</span>
+              </div>
+              <p class="text-xs text-[#594E4A]">排斥封闭性油润面霜，偏好清爽凝露水感</p>
+              <div class="flex justify-end pt-1">
+                <button class="text-[10px] text-[#D9412B] hover:underline">删除这条认知</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 抽屉底部彻底清空 -->
+        <div class="pt-4 border-t border-[#EFEAE6]">
+          <button class="w-full py-2.5 bg-white border border-[#FFD0C7] text-[#D9412B] rounded-2xl text-xs font-bold spring-btn">
+            一键清空小糯的全部记忆
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 简单的原型交互脚本
+    const openDrawerBtn = document.getElementById('openDrawerBtn');
+    const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+    const memoryDrawer = document.getElementById('memoryDrawer');
+
+    const cameraBtn = document.getElementById('cameraBtn');
+    const closeCameraSheet = document.getElementById('closeCameraSheet');
+    const cameraActionSheet = document.getElementById('cameraActionSheet');
+
+    const nuonuoAvatar = document.getElementById('nuonuoAvatar');
+
+    // 抽屉开关
+    openDrawerBtn.addEventListener('click', () => memoryDrawer.classList.remove('hidden'));
+    closeDrawerBtn.addEventListener('click', () => memoryDrawer.classList.add('hidden'));
+
+    // 相机弹窗开关
+    cameraBtn.addEventListener('click', () => cameraActionSheet.classList.remove('hidden'));
+    closeCameraSheet.addEventListener('click', () => cameraActionSheet.classList.add('hidden'));
+
+    // 点击小糯触碰形变反馈
+    nuonuoAvatar.addEventListener('click', () => {
+      nuonuoAvatar.style.transform = 'scale(0.92) translateY(4px)';
+      if (navigator.vibrate) navigator.vibrate(12);
+      setTimeout(() => {
+        nuonuoAvatar.style.transform = '';
+      }, 180);
+    });
+  </script>
+</body>
+</html>
