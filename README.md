@@ -1,6 +1,6 @@
 # 小糯智肤 (Nuonuo Skin AI)
 
-> 基于 Spring Boot 3 与 Qwen-VL 的功效护肤多模态 Agent：原生视觉识别、确定性成分配伍校验与长效记忆治理。
+> 基于 Spring Boot 3 与 Qwen-VL 的护肤多模态 Agent 服务：集成 AC 自动机配伍禁忌规则引擎、Milvus 临床指南 RAG 与长效记忆治理。
 
 [![JDK](https://img.shields.io/badge/JDK-17%20(LTS)-ED8B00?style=flat-square&logo=openjdk&logoColor=white)](#)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-6DB33F?style=flat-square&logo=springboot&logoColor=white)](#)
