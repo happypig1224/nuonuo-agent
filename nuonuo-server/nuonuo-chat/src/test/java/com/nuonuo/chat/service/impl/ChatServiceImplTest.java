@@ -135,7 +135,6 @@ class ChatServiceImplTest {
         request.setPrompt("帮我安排一个早晚护肤流程");
 
         when(memoryService.listActiveMemories("u-3")).thenReturn(List.of());
-        when(llmClient.isConfigured()).thenReturn(false);
 
         SseEmitter emitter = chatService.streamChat("u-3", request);
         assertNotNull(emitter);
