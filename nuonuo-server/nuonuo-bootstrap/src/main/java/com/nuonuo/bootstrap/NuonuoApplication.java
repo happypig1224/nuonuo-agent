@@ -4,6 +4,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 小糯智肤后端应用启动入口。
@@ -12,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * @since 2026-04-27
  */
 @EnableAsync
+@EnableScheduling
 @MapperScan("com.nuonuo.**.mapper")
 @SpringBootApplication(scanBasePackages = "com.nuonuo")
 public class NuonuoApplication {
