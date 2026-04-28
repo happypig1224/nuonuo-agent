@@ -1,6 +1,14 @@
-import { PointerEvent, useRef, useState } from 'react';
+import { PointerEvent, useEffect, useRef, useState } from 'react';
 import { useSheetPresence } from '../hooks/useSheetPresence';
+import {
+  deleteCurrentAccount,
+  getUserState,
+  logoutAccount,
+  subscribeUserState,
+  updateNickname
+} from '../services/userService';
 import { MEMORY_CATEGORY_LABELS, MemoryCategory, MemoryItem } from '../types/memory';
+import { UserAuthStatus, UserState } from '../types/user';
 import { triggerTapHaptic } from '../utils/haptics';
 
 interface MemoryDrawerProps {
@@ -17,6 +25,13 @@ const CATEGORIES: MemoryCategory[] = ['SKIN_TYPE', 'ALLERGY', 'PREFERENCE'];
 // 向右拖拽抽屉超过 72px 触发原生跟手收纳
 const DRAWER_DISMISS_PX = 72;
 
+const USER_STATUS_LABELS: Record<UserAuthStatus, string> = {
+  UNAUTHENTICATED: '未登录',
+  AUTHENTICATING: '登录中',
+  AUTHENTICATED: '已登录',
+  EXPIRED: '登录已过期'
+};
+
 export function MemoryDrawer({
   open,
   items,
@@ -28,7 +43,15 @@ export function MemoryDrawer({
   const { mounted, visible } = useSheetPresence(open, 360);
   const [confirmClear, setConfirmClear] = useState(false);
   const [dragX, setDragX] = useState(0);
+  const [userState, setUserState] = useState<UserState>(() => getUserState());
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
   const dragStartXRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return subscribeUserState(setUserState);
+  }, []);
 
   if (!mounted) {
     return null;
@@ -98,6 +121,148 @@ export function MemoryDrawer({
               <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '10px 14px',
+            margin: '0 16px 10px',
+            borderRadius: '14px',
+            background: 'rgba(255, 255, 255, 0.55)',
+            border: '1px solid rgba(255, 255, 255, 0.7)',
+            fontSize: '12px'
+          }}
+        >
+          {userState.status === 'AUTHENTICATED' && userState.profile ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                    <span>{userState.profile.nickname}</span>
+                    <span
+                      style={{
+                        padding: '1px 6px',
+                        borderRadius: '999px',
+                        fontSize: '11px',
+                        background: 'rgba(244, 143, 177, 0.16)',
+                        color: '#b84a6e'
+                      }}
+                    >
+                      {USER_STATUS_LABELS[userState.status]}
+                    </span>
+                  </div>
+                  <div style={{ opacity: 0.65, fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    账号: {userState.profile.userId}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className="interactive-btn"
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(0, 0, 0, 0.08)',
+                      background: 'rgba(255, 255, 255, 0.85)',
+                      fontSize: '11px'
+                    }}
+                    onClick={() => {
+                      setNicknameInput(userState.profile?.nickname ?? '');
+                      setEditingNickname((v) => !v);
+                    }}
+                  >
+                    改昵称
+                  </button>
+                  <button
+                    type="button"
+                    className="interactive-btn"
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(0, 0, 0, 0.08)',
+                      background: 'rgba(255, 255, 255, 0.85)',
+                      fontSize: '11px'
+                    }}
+                    onClick={() => {
+                      triggerTapHaptic();
+                      void logoutAccount();
+                    }}
+                  >
+                    退出
+                  </button>
+                  <button
+                    type="button"
+                    className="interactive-btn"
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(220, 38, 38, 0.2)',
+                      background: 'rgba(254, 226, 226, 0.7)',
+                      color: '#b91c1c',
+                      fontSize: '11px'
+                    }}
+                    onClick={() => {
+                      triggerTapHaptic();
+                      void deleteCurrentAccount().catch((e) =>
+                        setAuthError(e instanceof Error ? e.message : '注销失败')
+                      );
+                    }}
+                  >
+                    注销
+                  </button>
+                </div>
+              </div>
+              {editingNickname && (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="text"
+                    value={nicknameInput}
+                    onChange={(e) => setNicknameInput(e.target.value)}
+                    placeholder="输入新昵称"
+                    style={{
+                      flex: 1,
+                      padding: '5px 8px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(0,0,0,0.12)',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="interactive-btn"
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      background: '#b84a6e',
+                      color: '#fff',
+                      border: 'none',
+                      fontSize: '12px'
+                    }}
+                    onClick={() => {
+                      if (!nicknameInput.trim()) return;
+                      void updateNickname(nicknameInput.trim())
+                        .then(() => setEditingNickname(false))
+                        .catch((e) => setAuthError(e instanceof Error ? e.message : '更新失败'));
+                    }}
+                  >
+                    保存
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: '12px', color: '#7a656c' }}>
+              {USER_STATUS_LABELS[userState.status]}
+            </div>
+          )}
+          {(authError || userState.errorMessage) && (
+            <div style={{ color: '#b91c1c', fontSize: '11px' }}>
+              {authError ?? userState.errorMessage}
+            </div>
+          )}
         </div>
 
         <div className="drawer-list">

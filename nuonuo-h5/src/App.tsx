@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CameraActionSheet } from './components/CameraActionSheet';
 import { FloatingDock } from './components/FloatingDock';
+import { LoginPage } from './components/LoginPage';
 import { MemoryDrawer } from './components/MemoryDrawer';
 import { MessageBubble } from './components/MessageBubble';
 import { NuonuoAvatar } from './components/NuonuoAvatar';
@@ -22,6 +23,8 @@ import {
 } from './services/memoryService';
 import { ChatMessage, EmotionState, MediaUploadScene, StreamPhase } from './types/chat';
 import { MemoryItem } from './types/memory';
+import { UserState } from './types/user';
+import { getUserState, subscribeUserState } from './services/userService';
 import { triggerAlertHaptic } from './utils/haptics';
 
 interface PendingRetryPayload {
@@ -31,6 +34,7 @@ interface PendingRetryPayload {
 }
 
 export function App() {
+  const [userState, setUserState] = useState<UserState>(() => getUserState());
   const [sessionId, setSessionId] = useState<string>(() => getOrCreateSessionId());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [memories, setMemories] = useState<MemoryItem[]>([]);
@@ -337,6 +341,14 @@ export function App() {
     setSessionId(resetSessionId());
     showToast('已开启新对话');
   }, [revokeTrackedObjectUrls, showToast]);
+
+  useEffect(() => {
+    return subscribeUserState(setUserState);
+  }, []);
+
+  if (userState.status !== 'AUTHENTICATED') {
+    return <LoginPage userState={userState} />;
+  }
 
   return (
     <div className="app-shell" data-theme={theme}>

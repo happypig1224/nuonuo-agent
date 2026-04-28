@@ -1,6 +1,13 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 const SESSION_STORAGE_KEY = 'nuonuo_session_id';
+const AUTH_TOKEN_STORAGE_KEY = 'nuonuo_auth_token';
 const DEFAULT_TIMEOUT_MS = 15000;
+
+let unauthorizedHandler: (() => void) | null = null;
+
+export function registerUnauthorizedHandler(handler: () => void): void {
+  unauthorizedHandler = handler;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -15,6 +22,32 @@ export class ApiError extends Error {
 export function buildApiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${normalizedPath}`;
+}
+
+export function getAuthToken(): string | null {
+  try {
+    const token = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+    return token && token.trim().length > 0 ? token.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token: string | null): void {
+  try {
+    if (token && token.trim().length > 0) {
+      window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token.trim());
+    } else {
+      window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // 忽略无痕模式等存储受限场景
+  }
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export function getOrCreateSessionId(): string {
@@ -53,6 +86,10 @@ export async function requestJson<T>(path: string, init: RequestInit = {}): Prom
 
   try {
     const headers = new Headers(init.headers);
+    const token = getAuthToken();
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
     if (!(init.body instanceof FormData) && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
@@ -64,6 +101,9 @@ export async function requestJson<T>(path: string, init: RequestInit = {}): Prom
     });
 
     if (!response.ok) {
+      if (response.status === 401 && unauthorizedHandler) {
+        unauthorizedHandler();
+      }
       let errMsg = `请求失败 (${response.status})`;
       try {
         const body = (await response.json()) as { message?: string };

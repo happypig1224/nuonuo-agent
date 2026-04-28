@@ -6,7 +6,7 @@ import {
   RoutineCardPayload
 } from '../types/chat';
 import { MemoryItem } from '../types/memory';
-import { buildApiUrl, requestJson } from './apiClient';
+import { buildApiUrl, getAuthHeaders, requestJson } from './apiClient';
 
 export interface StreamCallbacks {
   onEmotion: (emotion: EmotionState) => void;
@@ -120,7 +120,8 @@ export function startChatSseStream(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'text/event-stream'
+          Accept: 'text/event-stream',
+          ...getAuthHeaders()
         },
         body: JSON.stringify(request),
         signal: controller.signal
