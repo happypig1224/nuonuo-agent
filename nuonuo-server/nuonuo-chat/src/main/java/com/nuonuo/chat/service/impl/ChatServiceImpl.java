@@ -1,7 +1,11 @@
 package com.nuonuo.chat.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nuonuo.chat.dto.ChatHistoryItem;
 import com.nuonuo.chat.dto.ChatStreamRequest;
+import com.nuonuo.chat.entity.ChatMessageEntity;
+import com.nuonuo.chat.mapper.ChatMessageMapper;
 import com.nuonuo.chat.service.ChatService;
 import com.nuonuo.common.utils.LlmClient;
 import com.nuonuo.media.service.MediaAssetService;
@@ -12,7 +16,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -27,12 +33,32 @@ public class ChatServiceImpl implements ChatService {
 
     private final LlmClient llmClient;
     private final MediaAssetService mediaAssetService;
+    private final ChatMessageMapper chatMessageMapper;
     private final ObjectMapper objectMapper;
 
-    public ChatServiceImpl(LlmClient llmClient, MediaAssetService mediaAssetService, ObjectMapper objectMapper) {
+    public ChatServiceImpl(
+            LlmClient llmClient,
+            MediaAssetService mediaAssetService,
+            ChatMessageMapper chatMessageMapper,
+            ObjectMapper objectMapper) {
         this.llmClient = llmClient;
         this.mediaAssetService = mediaAssetService;
+        this.chatMessageMapper = chatMessageMapper;
         this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public List<ChatHistoryItem> getHistory(String userId, String sessionId) {
+        List<ChatMessageEntity> list = chatMessageMapper.selectList(
+                new LambdaQueryWrapper<ChatMessageEntity>()
+                        .eq(ChatMessageEntity::getUserId, userId)
+                        .eq(ChatMessageEntity::getSessionId, sessionId)
+                        .orderByAsc(ChatMessageEntity::getGmtCreate)
+                        .last("LIMIT 100")
+        );
+        return list.stream()
+                .map(e -> new ChatHistoryItem(e.getMessageId(), e.getRole(), e.getContent(), e.getGmtCreate()))
+                .toList();
     }
 
     @Override
@@ -51,6 +77,7 @@ public class ChatServiceImpl implements ChatService {
                 // 2. 推送初始情绪状态
                 sendEvent(emitter, "emotion", Map.of("emotion", "thinking"));
 
+                StringBuilder replyBuilder = new StringBuilder();
                 // 3. 调用 LlmClient（含 XML 提示词加载、指数退避+抖动重试、备用模型兜底）
                 if (llmClient.isConfigured()) {
                     llmClient.streamChat(
@@ -60,12 +87,13 @@ public class ChatServiceImpl implements ChatService {
                             request.getAudioBase64(),
                             request.getAudioFormat(),
                             chunk -> {
-                        try {
-                            sendEvent(emitter, "delta", Map.of("content", chunk));
-                        } catch (IOException e) {
-                            throw new RuntimeException("SSE send failed", e);
-                        }
-                    });
+                                replyBuilder.append(chunk);
+                                try {
+                                    sendEvent(emitter, "delta", Map.of("content", chunk));
+                                } catch (IOException e) {
+                                    throw new RuntimeException("SSE send failed", e);
+                                }
+                            });
                 } else {
                     streamFallbackReply(emitter, request);
                 }
@@ -74,6 +102,13 @@ public class ChatServiceImpl implements ChatService {
                 sendEvent(emitter, "emotion", Map.of("emotion", "happy"));
                 sendEvent(emitter, "done", Map.of("sessionId", request.getSessionId()));
                 emitter.complete();
+
+                // 5. 异步保存用户提问与助手回复到 chat_message
+                String finalReply = replyBuilder.toString();
+                if (StringUtils.hasText(finalReply)) {
+                    saveMessageAsync(userId, request.getSessionId(), "user", request.getPrompt().trim());
+                    saveMessageAsync(userId, request.getSessionId(), "assistant", finalReply);
+                }
             } catch (Exception ex) {
                 log.error("SSE chat stream failed for userId={}, sessionId={}", userId, request.getSessionId(), ex);
                 try {
@@ -114,6 +149,22 @@ public class ChatServiceImpl implements ChatService {
             sendEvent(emitter, "delta", Map.of("content", chunk));
             Thread.sleep(20);
         }
+    }
+
+    private void saveMessageAsync(String userId, String sessionId, String role, String content) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                ChatMessageEntity entity = new ChatMessageEntity();
+                entity.setMessageId("msg_" + UUID.randomUUID().toString().replace("-", ""));
+                entity.setUserId(userId);
+                entity.setSessionId(sessionId);
+                entity.setRole(role);
+                entity.setContent(content);
+                chatMessageMapper.insert(entity);
+            } catch (Exception ex) {
+                log.warn("Async save chat_message failed: userId={}, sessionId={}, role={}", userId, sessionId, role, ex);
+            }
+        });
     }
 
     private void sendEvent(SseEmitter emitter, String eventName, Object data) throws IOException {
