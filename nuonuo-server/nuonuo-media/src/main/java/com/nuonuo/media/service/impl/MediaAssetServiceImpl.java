@@ -2,6 +2,7 @@ package com.nuonuo.media.service.impl;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.model.ObjectMetadata;
 import com.nuonuo.media.config.OssProperties;
 import com.nuonuo.media.entity.MediaAssetEntity;
 import com.nuonuo.media.mapper.MediaAssetMapper;
@@ -13,12 +14,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -71,6 +74,53 @@ public class MediaAssetServiceImpl implements MediaAssetService {
                         userId, sessionId, mediaType, ex);
             }
         });
+    }
+
+    @Override
+    public String uploadJsonAndGetPresignedUrl(String userId, String sessionId, String fileName, String jsonContent) {
+        String safeUser = sanitizeSegment(userId, "anonymous");
+        String safeSession = sanitizeSegment(sessionId, "default");
+        String safeFile = StringUtils.hasText(fileName) ? fileName.replaceAll("[^a-zA-Z0-9._-]", "_") : "history.json";
+        String objectKey = "users/" + safeUser + "/sessions/" + safeSession + "/" + safeFile;
+        byte[] bytes = (jsonContent != null ? jsonContent : "[]").getBytes(StandardCharsets.UTF_8);
+
+        try {
+            String url;
+            if (ossProperties != null && ossProperties.isReady()) {
+                OSS ossClient = new OSSClientBuilder().build(
+                        ossProperties.getEndpoint(),
+                        ossProperties.getAccessKeyId(),
+                        ossProperties.getAccessKeySecret()
+                );
+                try {
+                    ObjectMetadata metadata = new ObjectMetadata();
+                    metadata.setContentType("application/json; charset=utf-8");
+                    metadata.setContentLength(bytes.length);
+                    ossClient.putObject(ossProperties.getBucketName(), objectKey, new ByteArrayInputStream(bytes), metadata);
+                    Date expiration = new Date(System.currentTimeMillis() + 15 * 60 * 1000L);
+                    url = ossClient.generatePresignedUrl(ossProperties.getBucketName(), objectKey, expiration).toString();
+                } finally {
+                    ossClient.shutdown();
+                }
+            } else {
+                Path target = LOCAL_OSS_DIR.resolve(objectKey);
+                Files.createDirectories(target.getParent());
+                Files.write(target, bytes);
+                url = "/uploads/" + objectKey;
+            }
+
+            MediaAssetEntity entity = new MediaAssetEntity();
+            entity.setUserId(userId);
+            entity.setSessionId(sessionId);
+            entity.setMediaType("HISTORY_JSON");
+            entity.setMediaTag("archive");
+            entity.setStorageUrl(url);
+            entity.setFileSize((long) bytes.length);
+            mediaAssetMapper.insert(entity);
+            return url;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to upload session history JSON to OSS", ex);
+        }
     }
 
     String buildObjectKey(String userId, String sessionId, String mediaType, String ext) {

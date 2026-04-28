@@ -54,4 +54,12 @@ class MediaAssetServiceImplTest {
         assertTrue(key.startsWith("users/user_nuonuo_ai/sessions/sess-1/image/"));
         assertTrue(key.endsWith(".png"));
     }
+
+    @Test
+    void uploadJsonAndGetPresignedUrl_shouldReturnJsonPath_whenOssNotConfigured() {
+        MediaAssetServiceImpl service = new MediaAssetServiceImpl(mediaAssetMapper, new OssProperties());
+        String url = service.uploadJsonAndGetPresignedUrl("u1", "s1", "history.json", "[{\"role\":\"user\",\"content\":\"hi\"}]");
+        assertTrue(url.contains("users/u1/sessions/s1/"));
+        assertTrue(url.endsWith("history.json"));
+    }
 }
