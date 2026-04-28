@@ -1,0 +1,48 @@
+services:
+  mysql:
+    image: mysql:8.4.3
+    container_name: nuonuo-mysql
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    environment:
+      MYSQL_DATABASE: nuonuo_agent
+      MYSQL_USER: ${SPRING_DATASOURCE_USERNAME:-nuonuo_root}
+      MYSQL_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-YourSecurePassword123!}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-RootSecurePassword123!}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - nuonuo_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-RootSecurePassword123!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: nuonuo-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command:
+      - redis-server
+      - --requirepass
+      - ${SPRING_DATA_REDIS_PASSWORD:-YourRedisPassword123!}
+      - --appendonly
+      - "yes"
+    volumes:
+      - nuonuo_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${SPRING_DATA_REDIS_PASSWORD:-YourRedisPassword123!}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nuonuo_mysql_data:
+  nuonuo_redis_data:

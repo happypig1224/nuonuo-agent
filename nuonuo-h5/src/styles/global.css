@@ -1,0 +1,201 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+html,
+body,
+#root {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior-y: none;
+  background-color: #161e29;
+  color: var(--lg-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'SF Pro SC', 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.selectable-text {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.app-shell {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--app-bg);
+  color: var(--lg-text);
+  transition: background-color 350ms var(--ease-ios);
+}
+
+/* 底层多色弥散 Mesh 渐变 + 细腻胶片微噪点（消除色彩断层，还原顶级 iOS 26 液态玻璃折射底图） */
+.ambient-wallpaper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(at 14% 12%, hsla(200, 82%, 78%, 0.92) 0px, transparent 54%),
+    radial-gradient(at 88% 18%, hsla(218, 66%, 48%, 0.85) 0px, transparent 52%),
+    radial-gradient(at 48% 48%, hsla(176, 56%, 72%, 0.68) 0px, transparent 58%),
+    radial-gradient(at 18% 84%, hsla(212, 62%, 44%, 0.86) 0px, transparent 56%),
+    radial-gradient(at 86% 86%, hsla(38, 72%, 78%, 0.56) 0px, transparent 55%),
+    linear-gradient(155deg, #6da4c8 0%, #4b7da4 52%, #3a648a 100%);
+  background-size: cover;
+  transition: opacity 350ms var(--ease-ios);
+}
+
+.ambient-wallpaper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.app-shell[data-theme='peach'] .ambient-wallpaper {
+  background-image: url('/bg-peach-vanity.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+.app-shell[data-theme='peach'] .ambient-wallpaper::after {
+  display: none;
+}
+
+.app-shell[data-theme='night'] .ambient-wallpaper {
+  background-image:
+    radial-gradient(at 18% 16%, hsla(224, 58%, 42%, 0.56) 0px, transparent 56%),
+    radial-gradient(at 84% 24%, hsla(278, 44%, 36%, 0.48) 0px, transparent 54%),
+    radial-gradient(at 48% 84%, hsla(336, 42%, 34%, 0.44) 0px, transparent 58%),
+    linear-gradient(160deg, #131926 0%, #151424 55%, #1d1524 100%);
+}
+
+@media (min-width: 640px) {
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-shell {
+    height: min(896px, calc(100dvh - 32px));
+    border-radius: 44px;
+    border: 8px solid #2b313a;
+    box-shadow: 0 28px 64px rgba(0, 0, 0, 0.36);
+  }
+}
+
+.top-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(12px, env(safe-area-inset-top)) 14px 8px;
+  pointer-events: none;
+}
+
+.top-nav > * {
+  pointer-events: auto;
+}
+
+.chat-scroll-container {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  transform: translateZ(0);
+  will-change: scroll-position;
+  padding: calc(64px + env(safe-area-inset-top)) 16px calc(112px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: none;
+}
+
+.chat-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.interactive-btn {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 140ms var(--ease-ios), background-color 180ms ease;
+}
+
+.interactive-btn:active {
+  transform: scale(0.96);
+}
+
+@keyframes floatBreath {
+  0%, 100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.02, 0.98);
+  }
+}
+
+@keyframes alertShake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-4px) rotate(-3deg); }
+  75% { transform: translateX(4px) rotate(3deg); }
+}
+
+@keyframes celebrateSpin {
+  0% { transform: translateY(0) scale(1) rotate(0deg); }
+  40% { transform: translateY(-10px) scale(1.06) rotate(8deg); }
+  70% { transform: translateY(-4px) scale(1.02) rotate(-6deg); }
+  100% { transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+@keyframes jellyPoke {
+  0% { transform: scale(1, 1); }
+  30% { transform: scale(1.12, 0.88); }
+  60% { transform: scale(0.94, 1.07); }
+  100% { transform: scale(1, 1); }
+}
+
+@keyframes rippleExpand {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+}

@@ -1,0 +1,90 @@
+:root {
+  /* 基础语义色 */
+  --nuonuo-peach-primary: #ff8a80;
+  --nuonuo-peach-deep: #ff6e59;
+  --nuonuo-safe-green: #52c41a;
+  --nuonuo-caution-orange: #fa8c16;
+  --nuonuo-danger-red: #ff4d4f;
+
+  /* 主题动态液态玻璃令牌（晴空水雾） */
+  --app-bg: #5d8fb2;
+  --lg-bg: rgba(24, 52, 74, 0.20);
+  --lg-bg-hover: rgba(24, 52, 74, 0.28);
+  --lg-bg-user: rgba(18, 72, 102, 0.28);
+  --lg-sub-bg: rgba(255, 255, 255, 0.12);
+  --lg-text: #ffffff;
+  --lg-text-sub: rgba(235, 244, 255, 0.84);
+  --lg-text-shadow: 0 1px 2px rgba(4, 18, 30, 0.18);
+  --lg-am-accent: #ffd4cc;
+  --lg-pm-accent: #c7e8c9;
+  --lg-icon-shadow: drop-shadow(0 1px 2px rgba(4, 18, 30, 0.28));
+  --lg-rim-top: rgba(255, 255, 255, 0.78);
+  --lg-rim-mid: rgba(255, 255, 255, 0.22);
+  --lg-rim-low: rgba(255, 255, 255, 0.08);
+  --lg-rim-bottom: rgba(255, 255, 255, 0.24);
+  --lg-inset-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.28), inset 0 -1px 2.5px rgba(8, 28, 42, 0.18);
+  --lg-drop-shadow: 0 0 0 0.5px rgba(10, 32, 48, 0.12), 0 10px 28px rgba(4, 18, 30, 0.18);
+  --lg-sheet-bg: rgba(24, 52, 74, 0.36);
+  --lg-sheet-card: rgba(255, 255, 255, 0.12);
+  --lg-sheet-divider: rgba(255, 255, 255, 0.14);
+  --lg-sheet-control: rgba(255, 255, 255, 0.14);
+
+  /* 抽屉与面板（保持 iOS Inset Grouped 高可读性） */
+  --nuonuo-text-main: #1c1c1e;
+  --nuonuo-text-sub: #6e6e73;
+
+  --radius-bubble: 20px;
+  --radius-card: 24px;
+  --radius-dock: 999px;
+  --radius-tag: 8px;
+
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --app-height: 100dvh;
+}
+
+/* 主题 2：蜜桃暖阳（晨间柔焦护肤台实景壁纸 + 高透浅色水玻璃，默认主题） */
+.app-shell[data-theme='peach'] {
+  --app-bg: #f7ebe4;
+  --lg-bg: rgba(255, 250, 246, 0.16);
+  --lg-bg-hover: rgba(255, 250, 246, 0.26);
+  --lg-bg-user: rgba(255, 148, 128, 0.18);
+  --lg-sub-bg: rgba(255, 255, 255, 0.30);
+  --lg-text: #2a211e;
+  --lg-text-sub: #5c4a44;
+  --lg-text-shadow: none;
+  --lg-am-accent: #c95c4e;
+  --lg-pm-accent: #4e7a54;
+  --lg-icon-shadow: none;
+  --lg-rim-top: rgba(255, 255, 255, 0.88);
+  --lg-rim-mid: rgba(255, 255, 255, 0.24);
+  --lg-rim-low: rgba(255, 255, 255, 0.10);
+  --lg-rim-bottom: rgba(255, 255, 255, 0.48);
+  --lg-inset-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.65), inset 0 -1px 2.5px rgba(68, 42, 32, 0.11);
+  --lg-drop-shadow: 0 0 0 0.5px rgba(72, 48, 38, 0.10), 0 10px 26px rgba(68, 42, 32, 0.08);
+  --lg-sheet-bg: rgba(255, 248, 244, 0.34);
+  --lg-sheet-card: rgba(255, 252, 250, 0.28);
+  --lg-sheet-divider: rgba(72, 48, 38, 0.10);
+  --lg-sheet-control: rgba(255, 250, 246, 0.34);
+}
+
+/* 主题 3：静谧深夜（00:00 ~ 05:00 自动启用或手动切换） */
+.app-shell[data-theme='night'] {
+  --app-bg: #0f1724;
+  --lg-bg: rgba(255, 255, 255, 0.08);
+  --lg-bg-hover: rgba(255, 255, 255, 0.14);
+  --lg-bg-user: rgba(56, 112, 148, 0.26);
+  --lg-sub-bg: rgba(255, 255, 255, 0.06);
+  --lg-text: #f5f5f7;
+  --lg-text-sub: rgba(235, 240, 248, 0.72);
+  --lg-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --lg-rim-top: rgba(255, 255, 255, 0.48);
+  --lg-rim-mid: rgba(255, 255, 255, 0.14);
+  --lg-rim-low: rgba(255, 255, 255, 0.05);
+  --lg-rim-bottom: rgba(255, 255, 255, 0.18);
+  --lg-inset-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.18), inset 0 -1.5px 3px rgba(0, 0, 0, 0.42);
+  --lg-drop-shadow: 0 0 0 0.75px rgba(0, 0, 0, 0.35), 0 14px 36px rgba(0, 0, 0, 0.45);
+  --lg-sheet-bg: rgba(20, 24, 36, 0.44);
+  --lg-sheet-card: rgba(255, 255, 255, 0.08);
+  --lg-sheet-divider: rgba(255, 255, 255, 0.10);
+  --lg-sheet-control: rgba(255, 255, 255, 0.10);
+}
