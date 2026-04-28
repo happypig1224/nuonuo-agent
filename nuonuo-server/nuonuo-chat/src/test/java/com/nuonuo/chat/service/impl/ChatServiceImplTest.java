@@ -56,7 +56,8 @@ class ChatServiceImplTest {
                 chatMessageMapper,
                 new ObjectMapper(),
                 memoryService,
-                ingredientCheckService
+                ingredientCheckService,
+                null
         );
     }
 

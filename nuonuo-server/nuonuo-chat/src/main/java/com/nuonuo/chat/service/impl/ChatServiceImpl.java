@@ -7,6 +7,7 @@ import com.nuonuo.chat.dto.ChatStreamRequest;
 import com.nuonuo.chat.entity.ChatMessageEntity;
 import com.nuonuo.chat.mapper.ChatMessageMapper;
 import com.nuonuo.chat.service.ChatService;
+import com.nuonuo.chat.service.SessionContextService;
 import com.nuonuo.common.utils.LlmClient;
 import com.nuonuo.ingredient.dto.IngredientCheckResponse;
 import com.nuonuo.ingredient.service.IngredientCheckService;
@@ -42,6 +43,7 @@ public class ChatServiceImpl implements ChatService {
     private final ObjectMapper objectMapper;
     private final MemoryService memoryService;
     private final IngredientCheckService ingredientCheckService;
+    private final SessionContextService sessionContextService;
 
     public ChatServiceImpl(
             LlmClient llmClient,
@@ -49,13 +51,15 @@ public class ChatServiceImpl implements ChatService {
             ChatMessageMapper chatMessageMapper,
             ObjectMapper objectMapper,
             MemoryService memoryService,
-            IngredientCheckService ingredientCheckService) {
+            IngredientCheckService ingredientCheckService,
+            SessionContextService sessionContextService) {
         this.llmClient = llmClient;
         this.mediaAssetService = mediaAssetService;
         this.chatMessageMapper = chatMessageMapper;
         this.objectMapper = objectMapper;
         this.memoryService = memoryService;
         this.ingredientCheckService = ingredientCheckService;
+        this.sessionContextService = sessionContextService;
     }
 
     @Override
@@ -129,11 +133,15 @@ public class ChatServiceImpl implements ChatService {
                 sendEvent(emitter, "done", Map.of("sessionId", request.getSessionId()));
                 emitter.complete();
 
-                // 5. 异步保存用户提问与助手回复到 chat_message
+                // 6. 异步保存用户提问与助手回复到 chat_message，并更新短期会话上下文与双阈值摘要压缩
                 String finalReply = replyBuilder.toString();
                 if (StringUtils.hasText(finalReply)) {
                     saveMessageAsync(userId, request.getSessionId(), "user", request.getPrompt().trim());
                     saveMessageAsync(userId, request.getSessionId(), "assistant", finalReply);
+                    if (sessionContextService != null) {
+                        CompletableFuture.runAsync(() ->
+                                sessionContextService.appendAndCompress(request.getSessionId(), request.getPrompt().trim(), finalReply));
+                    }
                 }
             } catch (Exception ex) {
                 log.error("SSE chat stream failed for userId={}, sessionId={}", userId, request.getSessionId(), ex);
@@ -240,6 +248,12 @@ public class ChatServiceImpl implements ChatService {
         }
         if (checkResult != null && StringUtils.hasText(checkResult.getGuardNotice())) {
             sb.append("【成分安全护栏】\n").append(checkResult.getGuardNotice()).append("\n\n");
+        }
+        if (sessionContextService != null) {
+            String shortTermContext = sessionContextService.buildShortTermContext(request.getSessionId());
+            if (StringUtils.hasText(shortTermContext)) {
+                sb.append(shortTermContext);
+            }
         }
         sb.append("【用户问题】\n").append(request.getPrompt().trim());
         if (StringUtils.hasText(request.getImageFileId())) {

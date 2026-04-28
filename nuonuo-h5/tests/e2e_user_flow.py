@@ -65,7 +65,7 @@ def main() -> int:
 
         # 4. 刷新页面，验证数据库持久化渲染
         page.reload(wait_until="domcontentloaded")
-        page.wait_for_timeout(800)
+        page.locator('button[aria-label="小糯记住了我"]').first.wait_for(state="visible", timeout=15000)
         page.locator('button[aria-label="小糯记住了我"]').first.click()
         page.get_by_text(updated_nickname).wait_for(state="visible", timeout=8000)
         print("[E2E] Persisted nickname verified after page reload")
