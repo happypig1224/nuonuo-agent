@@ -11,3 +11,10 @@ spring:
       password: ${SPRING_DATA_REDIS_PASSWORD:YourRedisPassword123!}
       database: ${SPRING_DATA_REDIS_DATABASE:0}
       timeout: 3s
+
+nuonuo:
+  llm:
+    base-url: ${LLM_BASE_URL:https://api.302.ai/v1}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:gpt-4o-mini}
+    fallback-model: ${LLM_FALLBACK_MODEL:gpt-3.5-turbo}

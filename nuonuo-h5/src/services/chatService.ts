@@ -22,6 +22,7 @@ export interface ChatStreamRequest {
   sessionId: string;
   prompt: string;
   imageFileId?: string;
+  imageBase64?: string;
   imageTag?: string;
 }
 
