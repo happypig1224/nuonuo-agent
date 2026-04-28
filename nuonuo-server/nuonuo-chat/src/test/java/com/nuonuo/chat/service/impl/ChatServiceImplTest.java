@@ -107,4 +107,38 @@ class ChatServiceImplTest {
         assertTrue(capturedPrompt.contains("干敏肌"), "Prompt should contain active user memory");
         assertTrue(capturedPrompt.contains("L3_GUARD_NOTICE"), "Prompt should contain L3 guard notice");
     }
+
+    @Test
+    void streamChat_shouldInvokeExtractAndUpsert_whenUserSharesProfile() throws Exception {
+        ChatStreamRequest request = new ChatStreamRequest();
+        request.setSessionId("sess-tdd-mem");
+        request.setPrompt("我是干敏肌，平时想抗老");
+
+        when(memoryService.listActiveMemories("u-2")).thenReturn(List.of());
+        when(ingredientCheckService.check("u-2", "sess-tdd-mem", "我是干敏肌，平时想抗老")).thenReturn(null);
+        MemoryItemResponse extracted = new MemoryItemResponse(
+                "mem-2", "SKIN_PROFILE", "SKIN_TYPE", "干敏肌", BigDecimal.valueOf(0.95), LocalDateTime.now()
+        );
+        when(memoryService.extractAndUpsert("u-2", "我是干敏肌，平时想抗老")).thenReturn(List.of(extracted));
+        when(llmClient.isConfigured()).thenReturn(false);
+
+        SseEmitter emitter = chatService.streamChat("u-2", request);
+        assertNotNull(emitter);
+
+        verify(memoryService, timeout(2000)).extractAndUpsert("u-2", "我是干敏肌，平时想抗老");
+    }
+
+    @Test
+    void streamChat_shouldCompleteCleanly_whenRoutineRequested() {
+        ChatStreamRequest request = new ChatStreamRequest();
+        request.setSessionId("sess-tdd-routine");
+        request.setPrompt("帮我安排一个早晚护肤流程");
+
+        when(memoryService.listActiveMemories("u-3")).thenReturn(List.of());
+        when(llmClient.isConfigured()).thenReturn(false);
+
+        SseEmitter emitter = chatService.streamChat("u-3", request);
+        assertNotNull(emitter);
+        verify(memoryService, timeout(2000)).listActiveMemories("u-3");
+    }
 }

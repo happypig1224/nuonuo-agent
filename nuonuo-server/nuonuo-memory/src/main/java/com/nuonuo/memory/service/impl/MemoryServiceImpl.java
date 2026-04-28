@@ -95,6 +95,68 @@ public class MemoryServiceImpl implements MemoryService {
         );
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<MemoryItemResponse> extractAndUpsert(String userId, String userText) {
+        if (userText == null || userText.isBlank()) {
+            return List.of();
+        }
+        List<String[]> candidates = new java.util.ArrayList<>();
+        String[] skinTypes = {"干敏肌", "油痘肌", "混油皮", "混干皮", "干皮", "油皮", "敏感肌", "中性肌"};
+        for (String st : skinTypes) {
+            if (userText.contains(st)) {
+                candidates.add(new String[]{"SKIN_PROFILE", "SKIN_TYPE", st});
+                break;
+            }
+        }
+        String[] intolerances = {"烟酰胺不耐受", "酒精过敏", "香精过敏", "刷酸不耐受", "A醇不耐受"};
+        for (String it : intolerances) {
+            if (userText.contains(it)) {
+                candidates.add(new String[]{"ALLERGY_INTOLERANCE", "INTOLERANCE", it});
+                break;
+            }
+        }
+        String[] goals = {"抗老", "美白", "祛痘", "保湿", "修护屏障", "淡斑"};
+        for (String g : goals) {
+            if (userText.contains(g)) {
+                candidates.add(new String[]{"SKINCARE_GOAL", "GOAL", g});
+                break;
+            }
+        }
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+        List<MemoryItemResponse> results = new java.util.ArrayList<>();
+        for (String[] c : candidates) {
+            UserProfileMemoryEntity existing = memoryMapper.selectOne(
+                    new LambdaQueryWrapper<UserProfileMemoryEntity>()
+                            .eq(UserProfileMemoryEntity::getUserId, userId)
+                            .eq(UserProfileMemoryEntity::getCategory, c[0])
+                            .eq(UserProfileMemoryEntity::getProfileKey, c[1])
+                            .eq(UserProfileMemoryEntity::getStatus, STATUS_ACTIVE)
+                            .last("LIMIT 1")
+            );
+            if (existing != null) {
+                if (!c[2].equals(existing.getProfileValue())) {
+                    existing.setProfileValue(c[2]);
+                    memoryMapper.updateById(existing);
+                    results.add(toResponse(existing));
+                }
+            } else {
+                UserProfileMemoryEntity entity = new UserProfileMemoryEntity();
+                entity.setUserId(userId);
+                entity.setCategory(c[0]);
+                entity.setProfileKey(c[1]);
+                entity.setProfileValue(c[2]);
+                entity.setConfidence(new java.math.BigDecimal("0.90"));
+                entity.setStatus(STATUS_ACTIVE);
+                memoryMapper.insert(entity);
+                results.add(toResponse(entity));
+            }
+        }
+        return results;
+    }
+
     private MemoryItemResponse toResponse(UserProfileMemoryEntity entity) {
         return new MemoryItemResponse(
                 String.valueOf(entity.getId()),

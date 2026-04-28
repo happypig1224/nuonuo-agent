@@ -122,7 +122,9 @@ public class ChatServiceImpl implements ChatService {
                     streamFallbackReply(emitter, request);
                 }
 
-                // 5. 结束事件
+                // 5. 记忆自动提取、护肤流程卡片与结束事件
+                safeExtractAndEmitMemories(emitter, userId, request.getPrompt());
+                safeEmitRoutineCard(emitter, request.getPrompt(), memories);
                 sendEvent(emitter, "emotion", Map.of("emotion", hasConflict ? "CONCERNED" : "CELEBRATE"));
                 sendEvent(emitter, "done", Map.of("sessionId", request.getSessionId()));
                 emitter.complete();
@@ -145,6 +147,54 @@ public class ChatServiceImpl implements ChatService {
         });
 
         return emitter;
+    }
+
+    private void safeEmitRoutineCard(SseEmitter emitter, String prompt, List<MemoryItemResponse> memories) {
+        if (!StringUtils.hasText(prompt)) {
+            return;
+        }
+        String lower = prompt.toLowerCase();
+        boolean isRoutineQuery = lower.contains("流程") || lower.contains("早晚")
+                || lower.contains("顺序") || lower.contains("routine") || lower.contains("搭配");
+        if (!isRoutineQuery) {
+            return;
+        }
+        try {
+            boolean isSensitive = memories != null && memories.stream()
+                    .anyMatch(m -> m.getProfileValue() != null && m.getProfileValue().contains("敏"));
+            String badge = isSensitive ? "温和修护版" : "日常精简版";
+            List<Map<String, String>> amSteps = List.of(
+                    Map.of("step", "1", "name", "温水/氨基酸洁面", "note", "避免过度清洁"),
+                    Map.of("step", "2", "name", "保湿修护精华", "note", isSensitive ? "神经酰胺/B5 优先" : "透明质酸补水"),
+                    Map.of("step", "3", "name", "防晒霜", "note", "SPF30+ PA+++ 足量涂抹")
+            );
+            List<Map<String, String>> pmSteps = List.of(
+                    Map.of("step", "1", "name", "温和卸妆洁面", "note", "彻底清洁防晒"),
+                    Map.of("step", "2", "name", "修护/抗老精华", "note", isSensitive ? "低浓度温和建立耐受" : "按肤质需求选择"),
+                    Map.of("step", "3", "name", "保湿面霜", "note", "锁水修护屏障")
+            );
+            sendEvent(emitter, "routine_card", Map.of(
+                    "title", "小糯为你定制的早晚护肤流程",
+                    "badge", badge,
+                    "amSteps", amSteps,
+                    "pmSteps", pmSteps
+            ));
+        } catch (Exception ex) {
+            log.warn("Failed to emit routine_card", ex);
+        }
+    }
+
+    private void safeExtractAndEmitMemories(SseEmitter emitter, String userId, String prompt) {
+        try {
+            List<MemoryItemResponse> extracted = memoryService.extractAndUpsert(userId, prompt);
+            if (extracted != null) {
+                for (MemoryItemResponse item : extracted) {
+                    sendEvent(emitter, "memory_extracted", item);
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to extract or emit memories for userId={}", userId, ex);
+        }
     }
 
     private List<MemoryItemResponse> safeListMemories(String userId) {

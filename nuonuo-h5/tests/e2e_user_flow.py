@@ -52,7 +52,7 @@ def main() -> int:
 
         # 2. 进入主聊天页，打开“小糯记住了我”抽屉验证登录态
         page.locator('button[aria-label="小糯记住了我"]').wait_for(state="visible", timeout=10000)
-        page.locator('button[aria-label="小糯记住了我"]').click()
+        page.locator('button[aria-label="小糯记住了我"]').first.click()
         page.get_by_text(f"账号: {test_account}").wait_for(state="visible", timeout=8000)
         print(f"[E2E] Registered & logged in as {test_account}")
 
@@ -65,7 +65,7 @@ def main() -> int:
 
         # 4. 刷新页面，验证数据库持久化渲染
         page.reload(wait_until="networkidle")
-        page.locator('button[aria-label="小糯记住了我"]').click()
+        page.locator('button[aria-label="小糯记住了我"]').first.click()
         page.get_by_text(updated_nickname).wait_for(state="visible", timeout=8000)
         print("[E2E] Persisted nickname verified after page reload")
 

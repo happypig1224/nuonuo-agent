@@ -28,4 +28,9 @@ public interface MemoryService {
      * 清空当前用户所有生效中的记忆（标记为 USER_DELETED 墓碑）
      */
     void clearAllMemories(String userId);
+
+    /**
+     * 从用户对话文本中提取护肤档案事实并持久化（存在同 key 则更新，否则新增）
+     */
+    List<MemoryItemResponse> extractAndUpsert(String userId, String userText);
 }
