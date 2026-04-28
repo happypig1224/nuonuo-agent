@@ -1,6 +1,7 @@
 package com.nuonuo.media.service.impl;
 
 import com.nuonuo.media.config.OssProperties;
+import com.nuonuo.media.entity.MediaAssetEntity;
 import com.nuonuo.media.mapper.MediaAssetMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +44,6 @@ class MediaAssetServiceImplTest {
 
         service.persistAsync("u-oss-test", "s-oss-test", "IMAGE", "ingredient", b64, "png");
 
-        verify(mediaAssetMapper, timeout(2000)).insert(any());
+        verify(mediaAssetMapper, timeout(2000)).insert(any(MediaAssetEntity.class));
     }
 }
