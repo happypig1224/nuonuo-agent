@@ -16,7 +16,10 @@ import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -49,8 +52,7 @@ public class MediaAssetServiceImpl implements MediaAssetService {
                 String raw = base64Data.contains(",") ? base64Data.substring(base64Data.indexOf(',') + 1) : base64Data;
                 byte[] bytes = Base64.getDecoder().decode(raw);
 
-                String safeExt = StringUtils.hasText(ext) ? ext.replaceAll("[^a-zA-Z0-9]", "") : "bin";
-                String objectKey = userId + "/" + sessionId + "/" + UUID.randomUUID() + "." + safeExt;
+                String objectKey = buildObjectKey(userId, sessionId, mediaType, ext);
                 String storageUrl = uploadOrFallback(objectKey, bytes);
 
                 MediaAssetEntity entity = new MediaAssetEntity();
@@ -69,6 +71,22 @@ public class MediaAssetServiceImpl implements MediaAssetService {
                         userId, sessionId, mediaType, ex);
             }
         });
+    }
+
+    String buildObjectKey(String userId, String sessionId, String mediaType, String ext) {
+        String safeUser = sanitizeSegment(userId, "anonymous");
+        String safeSession = sanitizeSegment(sessionId, "default");
+        String safeType = sanitizeSegment(mediaType, "media").toLowerCase(Locale.ROOT);
+        String safeExt = StringUtils.hasText(ext) ? ext.replaceAll("[^a-zA-Z0-9]", "") : "bin";
+        String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        return "users/" + safeUser + "/sessions/" + safeSession + "/" + safeType + "/" + datePath + "/" + UUID.randomUUID() + "." + safeExt;
+    }
+
+    private String sanitizeSegment(String value, String fallback) {
+        if (!StringUtils.hasText(value)) {
+            return fallback;
+        }
+        return value.trim().replaceAll("[^a-zA-Z0-9_-]", "_");
     }
 
     String uploadOrFallback(String objectKey, byte[] bytes) throws Exception {

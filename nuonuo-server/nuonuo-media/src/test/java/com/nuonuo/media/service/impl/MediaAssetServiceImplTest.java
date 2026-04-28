@@ -46,4 +46,12 @@ class MediaAssetServiceImplTest {
 
         verify(mediaAssetMapper, timeout(2000)).insert(any(MediaAssetEntity.class));
     }
+
+    @Test
+    void buildObjectKey_shouldIsolateByUserAndSession() {
+        MediaAssetServiceImpl service = new MediaAssetServiceImpl(mediaAssetMapper, new OssProperties());
+        String key = service.buildObjectKey("user@nuonuo.ai", "sess-1", "IMAGE", "png");
+        assertTrue(key.startsWith("users/user_nuonuo_ai/sessions/sess-1/image/"));
+        assertTrue(key.endsWith(".png"));
+    }
 }
