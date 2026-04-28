@@ -1,13 +1,18 @@
 package com.nuonuo.media.service.impl;
 
+import com.aliyun.oss.OSS;
+import com.aliyun.oss.OSSClientBuilder;
+import com.nuonuo.media.config.OssProperties;
 import com.nuonuo.media.entity.MediaAssetEntity;
 import com.nuonuo.media.mapper.MediaAssetMapper;
 import com.nuonuo.media.service.MediaAssetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * 多模态素材异步持久化实现：
- * 异步解码 -> 写入对象存储（本地 dev 目录兜底） -> 异步落库 media_asset
+ * 异步解码 -> 优先上传阿里云 OSS（nuonuo-agents），未配置密钥时降级本地 uploads 目录 -> 异步落库 media_asset
  */
 @Service
 public class MediaAssetServiceImpl implements MediaAssetService {
@@ -26,9 +31,12 @@ public class MediaAssetServiceImpl implements MediaAssetService {
     private static final Path LOCAL_OSS_DIR = Paths.get("uploads");
 
     private final MediaAssetMapper mediaAssetMapper;
+    private final OssProperties ossProperties;
 
-    public MediaAssetServiceImpl(MediaAssetMapper mediaAssetMapper) {
+    @Autowired
+    public MediaAssetServiceImpl(MediaAssetMapper mediaAssetMapper, OssProperties ossProperties) {
         this.mediaAssetMapper = mediaAssetMapper;
+        this.ossProperties = ossProperties;
     }
 
     @Override
@@ -43,27 +51,43 @@ public class MediaAssetServiceImpl implements MediaAssetService {
 
                 String safeExt = StringUtils.hasText(ext) ? ext.replaceAll("[^a-zA-Z0-9]", "") : "bin";
                 String objectKey = userId + "/" + sessionId + "/" + UUID.randomUUID() + "." + safeExt;
-
-                // 开发环境兜底写入本地 uploads 目录（生产环境可替换为 OSS SDK 上传）
-                Path target = LOCAL_OSS_DIR.resolve(objectKey);
-                Files.createDirectories(target.getParent());
-                Files.write(target, bytes);
+                String storageUrl = uploadOrFallback(objectKey, bytes);
 
                 MediaAssetEntity entity = new MediaAssetEntity();
                 entity.setUserId(userId);
                 entity.setSessionId(sessionId);
                 entity.setMediaType(mediaType);
                 entity.setMediaTag(mediaTag);
-                entity.setStorageUrl("/uploads/" + objectKey);
+                entity.setStorageUrl(storageUrl);
                 entity.setFileSize((long) bytes.length);
                 mediaAssetMapper.insert(entity);
 
                 log.info("Async persisted {} asset: userId={}, sessionId={}, url={}, size={}",
-                        mediaType, userId, sessionId, entity.getStorageUrl(), bytes.length);
+                        mediaType, userId, sessionId, storageUrl, bytes.length);
             } catch (Exception ex) {
                 log.warn("Async media persistence failed: userId={}, sessionId={}, type={}",
                         userId, sessionId, mediaType, ex);
             }
         });
+    }
+
+    String uploadOrFallback(String objectKey, byte[] bytes) throws Exception {
+        if (ossProperties != null && ossProperties.isReady()) {
+            OSS ossClient = new OSSClientBuilder().build(
+                    ossProperties.getEndpoint(),
+                    ossProperties.getAccessKeyId(),
+                    ossProperties.getAccessKeySecret()
+            );
+            try {
+                ossClient.putObject(ossProperties.getBucketName(), objectKey, new ByteArrayInputStream(bytes));
+                return ossProperties.buildPublicUrl(objectKey);
+            } finally {
+                ossClient.shutdown();
+            }
+        }
+        Path target = LOCAL_OSS_DIR.resolve(objectKey);
+        Files.createDirectories(target.getParent());
+        Files.write(target, bytes);
+        return "/uploads/" + objectKey;
     }
 }
